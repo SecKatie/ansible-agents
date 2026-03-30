@@ -1,0 +1,20 @@
+---
+# Simple prompt — plain text response
+- name: Simple agent prompt
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Ask a question
+      seckatie.agents.agent:
+        model: "google-gla:gemini-3-flash-preview"
+        system_prompt: "You are a helpful assistant. Be concise."
+        prompt: "What are the three main benefits of infrastructure as code?"
+      register: result
+
+    - name: Show response
+      debug:
+        msg: "{{ result.output }}"
+
+    - name: Show usage
+      debug:
+        msg: "Tokens: {{ result.usage.input_tokens }} in, {{ result.usage.output_tokens }} out"

@@ -1,0 +1,24 @@
+---
+# Conversation continuity — pass message_history between tasks
+- name: Conversation continuity example
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: First question
+      seckatie.agents.agent:
+        model: "google-gla:gemini-3-flash-preview"
+        system_prompt: "You are a helpful assistant. Be concise."
+        prompt: "My name is Alice and I work on the billing team."
+      register: first
+
+    - name: Follow-up using history
+      seckatie.agents.agent:
+        model: "google-gla:gemini-3-flash-preview"
+        system_prompt: "You are a helpful assistant. Be concise."
+        prompt: "What is my name and what team do I work on?"
+        message_history: "{{ first.message_history }}"
+      register: second
+
+    - name: Show follow-up response
+      debug:
+        msg: "{{ second.output }}"

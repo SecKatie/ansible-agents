@@ -1,0 +1,33 @@
+---
+# Structured output — JSON Schema defines the response shape
+- name: Structured output example
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Analyze a log line
+      seckatie.agents.agent:
+        model: "google-gla:gemini-3-flash-preview"
+        system_prompt: "You are a log analysis expert. Analyze the given log line."
+        prompt: "ERROR 2024-01-15 03:42:11 disk full on /dev/sda1 - inode usage 98%"
+        output_schema:
+          type: object
+          properties:
+            severity:
+              type: string
+              enum: [info, warning, error, critical]
+              description: "The severity level"
+            summary:
+              type: string
+              description: "A one-line summary"
+            recommended_action:
+              type: string
+              description: "What to do about it"
+          required: [severity, summary, recommended_action]
+      register: analysis
+
+    - name: Show analysis
+      debug:
+        msg: |
+          Severity: {{ analysis.output.severity }}
+          Summary: {{ analysis.output.summary }}
+          Action: {{ analysis.output.recommended_action }}

@@ -1,0 +1,47 @@
+---
+# Tool calling — agent can execute Ansible modules
+- name: Tool calling example
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Investigate disk usage
+      seckatie.agents.agent:
+        model: "google-gla:gemini-3-flash-preview"
+        system_prompt: |
+          You are a system administrator. Use the available tools to investigate
+          the system and report your findings.
+        prompt: "Check disk usage and memory on this host. Summarize what you find."
+        tools:
+          - name: check_disk
+            description: "Check disk usage with df -h"
+            module: ansible.builtin.command
+            fixed_args:
+              cmd: "df -h"
+          - name: check_memory
+            description: "Check memory usage with free -h"
+            module: ansible.builtin.command
+            fixed_args:
+              cmd: "free -h"
+        output_schema:
+          type: object
+          properties:
+            disk_summary:
+              type: string
+              description: "Summary of disk usage"
+            memory_summary:
+              type: string
+              description: "Summary of memory usage"
+            concerns:
+              type: array
+              items:
+                type: string
+              description: "List of any concerns found"
+          required: [disk_summary, memory_summary]
+      register: report
+
+    - name: Show report
+      debug:
+        msg: |
+          Disk: {{ report.output.disk_summary }}
+          Memory: {{ report.output.memory_summary }}
+          Concerns: {{ report.output.concerns | default([]) | join(', ') }}

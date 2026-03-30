@@ -1,0 +1,19 @@
+namespace: seckatie
+name: agents
+version: 0.1.0
+readme: README.md
+authors:
+  - seckatie
+description: AI agent capabilities for Ansible playbooks using Pydantic AI
+license:
+  - Apache-2.0
+repository: https://github.com/seckatie/ansible-agents
+documentation: https://github.com/seckatie/ansible-agents#readme
+homepage: https://github.com/seckatie/ansible-agents
+issues: https://github.com/seckatie/ansible-agents/issues
+tags:
+  - ai
+  - agent
+  - pydantic
+  - llm
+dependencies: {}

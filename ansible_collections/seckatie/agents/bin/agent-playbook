@@ -1,0 +1,5 @@
+#!/bin/bash
+# Wrapper script for running ansible-playbook on macOS with the seckatie.agents collection.
+# Sets OBJC_DISABLE_INITIALIZE_FORK_SAFETY to prevent ObjC fork crashes.
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+exec ansible-playbook "$@"

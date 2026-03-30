@@ -1,0 +1,120 @@
+---
+# End-to-end test playbook using Gemini 3 Flash Preview
+# Requires: GOOGLE_API_KEY environment variable
+- name: Test seckatie.agents.agent with Gemini 3 Flash Preview
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    test_model: "google-gla:gemini-3-flash-preview"
+
+  tasks:
+    # Test 1: Simple prompt
+    - name: "Test 1 - Simple prompt"
+      seckatie.agents.agent:
+        model: "{{ test_model }}"
+        system_prompt: "You are a helpful assistant. Answer in one sentence."
+        prompt: "What is 2 + 2?"
+      register: test1
+
+    - name: Verify test 1
+      assert:
+        that:
+          - test1.output is defined
+          - test1.output | length > 0
+          - test1.message_history is defined
+          - test1.usage.input_tokens > 0
+          - test1.changed == false
+        fail_msg: "Test 1 failed"
+        success_msg: "Test 1 passed: {{ test1.output }}"
+
+    # Test 2: Structured output
+    - name: "Test 2 - Structured output"
+      seckatie.agents.agent:
+        model: "{{ test_model }}"
+        system_prompt: "Classify the input."
+        prompt: "ERROR: disk full on /dev/sda1"
+        output_schema:
+          type: object
+          properties:
+            severity:
+              type: string
+              enum: [info, warning, error, critical]
+            summary:
+              type: string
+          required: [severity, summary]
+      register: test2
+
+    - name: Verify test 2
+      assert:
+        that:
+          - test2.output.severity in ['info', 'warning', 'error', 'critical']
+          - test2.output.summary | length > 0
+        fail_msg: "Test 2 failed"
+        success_msg: "Test 2 passed: severity={{ test2.output.severity }}"
+
+    # Test 3: Tool calling (command on controller)
+    - name: "Test 3 - Tool calling"
+      seckatie.agents.agent:
+        model: "{{ test_model }}"
+        system_prompt: "Use the available tools to answer."
+        prompt: "What is the current date? Use the get_date tool."
+        tools:
+          - name: get_date
+            description: "Get the current date and time"
+            module: ansible.builtin.command
+            fixed_args:
+              cmd: "date"
+      register: test3
+
+    - name: Verify test 3
+      assert:
+        that:
+          - test3.output is defined
+          - test3.usage.tool_calls >= 1
+        fail_msg: "Test 3 failed"
+        success_msg: "Test 3 passed: {{ test3.output | truncate(80) }}"
+
+    # Test 4: Conversation continuity
+    - name: "Test 4a - First message"
+      seckatie.agents.agent:
+        model: "{{ test_model }}"
+        system_prompt: "You are a helpful assistant."
+        prompt: "Remember this number: 42"
+      register: test4a
+
+    - name: "Test 4b - Follow-up with history"
+      seckatie.agents.agent:
+        model: "{{ test_model }}"
+        system_prompt: "You are a helpful assistant."
+        prompt: "What number did I ask you to remember? Reply with just the number."
+        message_history: "{{ test4a.message_history }}"
+      register: test4b
+
+    - name: Verify test 4
+      assert:
+        that:
+          - "'42' in test4b.output"
+        fail_msg: "Test 4 failed: {{ test4b.output }}"
+        success_msg: "Test 4 passed: {{ test4b.output }}"
+
+    # Test 5: Model settings
+    - name: "Test 5 - Model settings (temperature=0)"
+      seckatie.agents.agent:
+        model: "{{ test_model }}"
+        system_prompt: "You are a helpful assistant."
+        prompt: "Say exactly: hello world"
+        model_settings:
+          temperature: 0
+      register: test5
+
+    - name: Verify test 5
+      assert:
+        that:
+          - test5.output is defined
+        fail_msg: "Test 5 failed"
+        success_msg: "Test 5 passed: {{ test5.output }}"
+
+    - name: All tests passed
+      debug:
+        msg: "All 5 tests passed successfully!"
