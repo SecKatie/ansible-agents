@@ -40,7 +40,7 @@
       register: report
 
     - name: Show report
-      debug:
+      ansible.builtin.debug:
         msg: |
           Disk: {{ report.output.disk_summary }}
           Memory: {{ report.output.memory_summary }}

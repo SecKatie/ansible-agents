@@ -17,7 +17,9 @@ _TYPE_MAP: dict[str, type] = {
 _UNSUPPORTED_KEYWORDS = {"oneOf", "anyOf", "allOf", "$ref"}
 
 
-def build_model(schema: dict[str, Any], model_name: str = "DynamicModel") -> type[BaseModel]:
+def build_model(
+    schema: dict[str, Any], model_name: str = "DynamicModel"
+) -> type[BaseModel]:
     """Build a Pydantic BaseModel class from a JSON Schema dict.
 
     Args:
@@ -50,9 +52,7 @@ def _check_unsupported(schema: dict[str, Any]) -> None:
             )
 
 
-def _build_object_model(
-    schema: dict[str, Any], model_name: str
-) -> type[BaseModel]:
+def _build_object_model(schema: dict[str, Any], model_name: str) -> type[BaseModel]:
     """Build a Pydantic model from an object-type JSON Schema."""
     _check_unsupported(schema)
     properties = schema.get("properties", {})
@@ -75,9 +75,7 @@ def _build_object_model(
     return create_model(model_name, **field_definitions)
 
 
-def _resolve_type(
-    prop_schema: dict[str, Any], nested_name: str
-) -> type:
+def _resolve_type(prop_schema: dict[str, Any], nested_name: str) -> type:
     """Resolve a JSON Schema property to a Python type."""
     _check_unsupported(prop_schema)
     prop_type = prop_schema.get("type", "string")

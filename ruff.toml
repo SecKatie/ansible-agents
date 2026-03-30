@@ -1,0 +1,3 @@
+[lint.per-file-ignores]
+# Ansible modules require DOCUMENTATION before imports
+"ansible_collections/**/modules/*.py" = ["E402"]

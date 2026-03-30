@@ -20,5 +20,5 @@
       register: second
 
     - name: Show follow-up response
-      debug:
+      ansible.builtin.debug:
         msg: "{{ second.output }}"

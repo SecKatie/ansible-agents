@@ -4,9 +4,6 @@ These tests exercise the core agent pipeline (schema builder + tool builder + Py
 using TestModel and FunctionModel to avoid real LLM calls.
 """
 
-import json
-import re
-
 import pytest
 
 from pydantic_ai import Agent, models
@@ -89,7 +86,10 @@ class TestToolCallingFixedArgs:
 
         def mock_execute(module_name, module_args):
             calls.append((module_name, module_args))
-            return {"changed": False, "stdout": "Filesystem  Size  Used  Avail\n/dev/sda1  50G  30G  20G"}
+            return {
+                "changed": False,
+                "stdout": "Filesystem  Size  Used  Avail\n/dev/sda1  50G  30G  20G",
+            }
 
         tool_defs = [
             {
@@ -102,7 +102,7 @@ class TestToolCallingFixedArgs:
         pydantic_tools, tracker = build_tools(tool_defs, mock_execute)
 
         agent = Agent(TestModel(), tools=pydantic_tools)
-        result = agent.run_sync("Check disk usage")
+        agent.run_sync("Check disk usage")
 
         assert len(calls) == 1
         assert calls[0][0] == "ansible.builtin.command"
@@ -149,7 +149,7 @@ class TestToolCallingWithTemplates:
                 return ModelResponse(parts=[TextPart("Done reading logs")])
 
         agent = Agent(FunctionModel(model_fn), tools=pydantic_tools)
-        result = agent.run_sync("Read the syslog")
+        agent.run_sync("Read the syslog")
 
         assert len(calls) == 1
         assert calls[0][0] == "ansible.builtin.command"
@@ -207,7 +207,7 @@ class TestChangedTracking:
 
         # Use TestModel which calls all tools by default
         agent = Agent(TestModel(), tools=pydantic_tools)
-        result = agent.run_sync("Do the thing")
+        agent.run_sync("Do the thing")
 
         # TestModel calls the tool once
         assert call_count[0] >= 1
@@ -215,7 +215,7 @@ class TestChangedTracking:
     def test_changed_false_when_no_tools(self):
         """No tools means changed should be False."""
         agent = Agent(TestModel(custom_output_text="no change"))
-        result = agent.run_sync("Just talk")
+        agent.run_sync("Just talk")
         # No tracker, so changed would be False in the action plugin
 
 
@@ -237,7 +237,9 @@ class TestMaxToolCalls:
         pydantic_tools, tracker = build_tools(tool_defs, mock_execute)
 
         # FunctionModel that always tries to call the tool
-        def always_call_tool(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        def always_call_tool(
+            messages: list[ModelMessage], info: AgentInfo
+        ) -> ModelResponse:
             return ModelResponse(parts=[ToolCallPart("repeat", {})])
 
         agent = Agent(FunctionModel(always_call_tool), tools=pydantic_tools)

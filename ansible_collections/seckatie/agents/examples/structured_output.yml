@@ -26,7 +26,7 @@
       register: analysis
 
     - name: Show analysis
-      debug:
+      ansible.builtin.debug:
         msg: |
           Severity: {{ analysis.output.severity }}
           Summary: {{ analysis.output.summary }}

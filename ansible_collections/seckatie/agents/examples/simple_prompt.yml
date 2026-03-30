@@ -12,9 +12,9 @@
       register: result
 
     - name: Show response
-      debug:
+      ansible.builtin.debug:
         msg: "{{ result.output }}"
 
     - name: Show usage
-      debug:
+      ansible.builtin.debug:
         msg: "Tokens: {{ result.usage.input_tokens }} in, {{ result.usage.output_tokens }} out"

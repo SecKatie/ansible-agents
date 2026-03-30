@@ -179,9 +179,7 @@ class TestConstraints:
     def test_pattern_constraint(self):
         schema = {
             "type": "object",
-            "properties": {
-                "code": {"type": "string", "pattern": r"^[A-Z]{3}-\d{3}$"}
-            },
+            "properties": {"code": {"type": "string", "pattern": r"^[A-Z]{3}-\d{3}$"}},
             "required": ["code"],
         }
         Model = build_model(schema)
@@ -194,9 +192,7 @@ class TestConstraints:
     def test_minimum_maximum(self):
         schema = {
             "type": "object",
-            "properties": {
-                "count": {"type": "integer", "minimum": 1, "maximum": 100}
-            },
+            "properties": {"count": {"type": "integer", "minimum": 1, "maximum": 100}},
             "required": ["count"],
         }
         Model = build_model(schema)
@@ -212,9 +208,7 @@ class TestConstraints:
     def test_min_max_length(self):
         schema = {
             "type": "object",
-            "properties": {
-                "name": {"type": "string", "minLength": 2, "maxLength": 10}
-            },
+            "properties": {"name": {"type": "string", "minLength": 2, "maxLength": 10}},
             "required": ["name"],
         }
         Model = build_model(schema)
@@ -287,9 +281,7 @@ class TestUnsupportedFeatures:
         schema = {
             "type": "object",
             "properties": {
-                "value": {
-                    "oneOf": [{"type": "string"}, {"type": "integer"}]
-                }
+                "value": {"oneOf": [{"type": "string"}, {"type": "integer"}]}
             },
         }
         with pytest.raises(ValueError, match="oneOf"):
@@ -299,9 +291,7 @@ class TestUnsupportedFeatures:
         schema = {
             "type": "object",
             "properties": {
-                "value": {
-                    "anyOf": [{"type": "string"}, {"type": "integer"}]
-                }
+                "value": {"anyOf": [{"type": "string"}, {"type": "integer"}]}
             },
         }
         with pytest.raises(ValueError, match="anyOf"):
@@ -310,9 +300,7 @@ class TestUnsupportedFeatures:
     def test_ref_raises(self):
         schema = {
             "type": "object",
-            "properties": {
-                "value": {"$ref": "#/definitions/Foo"}
-            },
+            "properties": {"value": {"$ref": "#/definitions/Foo"}},
         }
         with pytest.raises(ValueError, match="\\$ref"):
             build_model(schema)
@@ -328,7 +316,9 @@ class TestUnsupportedFeatures:
 
     def test_non_object_top_level_raises(self):
         schema = {"type": "string"}
-        with pytest.raises(ValueError, match="Top-level schema must have type 'object'"):
+        with pytest.raises(
+            ValueError, match="Top-level schema must have type 'object'"
+        ):
             build_model(schema)
 
 

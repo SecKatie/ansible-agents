@@ -1,7 +1,5 @@
 """Unit tests for tool_builder module."""
 
-import pytest
-
 from ansible_collections.seckatie.agents.plugins.module_utils.tool_builder import (
     ChangeTracker,
     _agent_args_to_json_schema,
@@ -246,12 +244,23 @@ class TestBuildTools:
 
     def test_multiple_tools(self):
         """Building multiple tools at once."""
+
         def mock_execute(module_name, module_args):
             return {"changed": False}
 
         tool_defs = [
-            {"name": "t1", "description": "T1", "module": "m1", "fixed_args": {"a": "1"}},
-            {"name": "t2", "description": "T2", "module": "m2", "agent_args": {"b": {"type": "string"}}},
+            {
+                "name": "t1",
+                "description": "T1",
+                "module": "m1",
+                "fixed_args": {"a": "1"},
+            },
+            {
+                "name": "t2",
+                "description": "T2",
+                "module": "m2",
+                "agent_args": {"b": {"type": "string"}},
+            },
         ]
         tools, tracker = build_tools(tool_defs, mock_execute)
         assert len(tools) == 2

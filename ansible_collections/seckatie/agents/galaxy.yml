@@ -12,6 +12,7 @@ documentation: https://github.com/seckatie/ansible-agents#readme
 homepage: https://github.com/seckatie/ansible-agents
 issues: https://github.com/seckatie/ansible-agents/issues
 tags:
+  - tools
   - ai
   - agent
   - pydantic

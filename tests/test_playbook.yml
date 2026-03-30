@@ -18,7 +18,7 @@
       register: test1
 
     - name: Verify test 1
-      assert:
+      ansible.builtin.assert:
         that:
           - test1.output is defined
           - test1.output | length > 0
@@ -46,7 +46,7 @@
       register: test2
 
     - name: Verify test 2
-      assert:
+      ansible.builtin.assert:
         that:
           - test2.output.severity in ['info', 'warning', 'error', 'critical']
           - test2.output.summary | length > 0
@@ -68,7 +68,7 @@
       register: test3
 
     - name: Verify test 3
-      assert:
+      ansible.builtin.assert:
         that:
           - test3.output is defined
           - test3.usage.tool_calls >= 1
@@ -92,7 +92,7 @@
       register: test4b
 
     - name: Verify test 4
-      assert:
+      ansible.builtin.assert:
         that:
           - "'42' in test4b.output"
         fail_msg: "Test 4 failed: {{ test4b.output }}"
@@ -109,12 +109,12 @@
       register: test5
 
     - name: Verify test 5
-      assert:
+      ansible.builtin.assert:
         that:
           - test5.output is defined
         fail_msg: "Test 5 failed"
         success_msg: "Test 5 passed: {{ test5.output }}"
 
     - name: All tests passed
-      debug:
+      ansible.builtin.debug:
         msg: "All 5 tests passed successfully!"

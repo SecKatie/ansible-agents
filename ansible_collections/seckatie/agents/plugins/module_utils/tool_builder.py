@@ -101,6 +101,7 @@ def _build_single_tool(
             json_schema=json_schema,
         )
     else:
+
         def _execute_no_args() -> dict[str, Any]:
             return _execute()
 
