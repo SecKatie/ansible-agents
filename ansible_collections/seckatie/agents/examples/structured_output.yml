@@ -1,10 +1,11 @@
 ---
 # Structured output — JSON Schema defines the response shape
+# Schemas can be defined inline or loaded from .json / .yaml files
 - name: Structured output example
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: Analyze a log line
+    - name: Analyze a log line (inline schema)
       seckatie.agents.agent:
         model: "google-gla:gemini-3-flash-preview"
         system_prompt: "You are a log analysis expert. Analyze the given log line."
@@ -31,3 +32,27 @@
           Severity: {{ analysis.output.severity }}
           Summary: {{ analysis.output.summary }}
           Action: {{ analysis.output.recommended_action }}
+
+    - name: Analyze a log line (schema from JSON file)
+      seckatie.agents.agent:
+        model: "google-gla:gemini-3-flash-preview"
+        system_prompt: "You are a log analysis expert. Analyze the given log line."
+        prompt: "WARNING 2024-01-15 04:10:00 high memory usage on webserver-01"
+        output_schema: "schemas/log_analysis.json"
+      register: analysis_json
+
+    - name: Show JSON-file-based analysis
+      ansible.builtin.debug:
+        var: analysis_json.output
+
+    - name: Analyze a log line (schema from YAML file)
+      seckatie.agents.agent:
+        model: "google-gla:gemini-3-flash-preview"
+        system_prompt: "You are a log analysis expert. Analyze the given log line."
+        prompt: "CRITICAL 2024-01-15 05:00:00 database connection pool exhausted"
+        output_schema: "schemas/log_analysis.yaml"
+      register: analysis_yaml
+
+    - name: Show YAML-file-based analysis
+      ansible.builtin.debug:
+        var: analysis_yaml.output

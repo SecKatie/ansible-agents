@@ -34,10 +34,12 @@ options:
     required: true
   output_schema:
     description:
-      - A JSON Schema dict defining the expected structured output.
+      - A JSON Schema dict defining the expected structured output, or a file path
+        (string) to a C(.json) or C(.yaml)/C(.yml) file containing a JSON Schema.
       - When provided, the agent returns a dict conforming to this schema.
       - When omitted, the agent returns plain text.
-    type: dict
+      - File paths are resolved relative to the playbook directory if not absolute.
+    type: raw
     required: false
   message_history:
     description:
@@ -93,6 +95,14 @@ EXAMPLES = r"""
         action:
           type: string
       required: [severity, summary]
+  register: analysis
+
+- name: Structured output from file
+  seckatie.agents.agent:
+    model: "openai:gpt-4o"
+    system_prompt: "Analyze the given log line."
+    prompt: "ERROR 2024-01-15 disk full on /dev/sda1"
+    output_schema: "schemas/log_analysis.json"
   register: analysis
 
 - name: Tool calling
@@ -166,7 +176,7 @@ def main():
             model=dict(type="str", required=True),
             system_prompt=dict(type="str", required=False, default=""),
             prompt=dict(type="str", required=True),
-            output_schema=dict(type="dict", required=False, default=None),
+            output_schema=dict(type="raw", required=False, default=None),
             message_history=dict(type="raw", required=False, default=None),
             tools=dict(type="list", elements="dict", required=False, default=[]),
             max_tool_calls=dict(type="int", required=False, default=25),

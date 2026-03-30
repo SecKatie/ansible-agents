@@ -58,7 +58,7 @@ Add it to `~/.zshrc` or `~/.bashrc`. This is a [known Ansible/macOS issue](https
 | `model` | str | yes | -- | LLM model in Pydantic AI format (`anthropic:claude-sonnet-4-20250514`, `openai:gpt-4o`, `google-gla:gemini-2.0-flash`) |
 | `system_prompt` | str | no | `""` | System prompt for the agent |
 | `prompt` | str | yes | -- | User prompt |
-| `output_schema` | dict | no | -- | JSON Schema for structured output |
+| `output_schema` | dict or str | no | -- | JSON Schema for structured output (inline dict or file path to `.json`/`.yaml`/`.yml`) |
 | `message_history` | raw | no | -- | Message history from a previous run (for conversation continuity) |
 | `tools` | list | no | `[]` | Tool definitions (see below) |
 | `max_tool_calls` | int | no | `25` | Maximum tool calls the agent may make |

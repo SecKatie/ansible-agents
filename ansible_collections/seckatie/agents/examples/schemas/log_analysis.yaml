@@ -1,0 +1,13 @@
+type: object
+properties:
+  severity:
+    type: string
+    enum: [info, warning, error, critical]
+    description: "The severity level"
+  summary:
+    type: string
+    description: "A one-line summary"
+  recommended_action:
+    type: string
+    description: "What to do about it"
+required: [severity, summary, recommended_action]

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Optional
 
+import yaml
 from pydantic import BaseModel, Field, create_model
 
 # JSON Schema type -> Python type mapping
@@ -124,3 +127,56 @@ def _build_field_kwargs(prop_schema: dict[str, Any]) -> dict[str, Any]:
         kwargs["max_length"] = prop_schema["maxLength"]
 
     return kwargs
+
+
+def resolve_schema(
+    output_schema: str | dict[str, Any], basedir: str = "."
+) -> dict[str, Any]:
+    """Resolve output_schema from an inline dict or a file path.
+
+    Args:
+        output_schema: An inline JSON Schema dict, or a file path (str)
+            pointing to a .json or .yaml/.yml schema file.
+        basedir: Base directory for resolving relative paths.
+
+    Returns:
+        A JSON Schema dict.
+
+    Raises:
+        ValueError: If the file format is unsupported or content is invalid.
+        FileNotFoundError: If the schema file does not exist.
+    """
+    if isinstance(output_schema, dict):
+        return output_schema
+
+    if isinstance(output_schema, str):
+        schema_path = Path(output_schema)
+        if not schema_path.is_absolute():
+            schema_path = Path(basedir) / schema_path
+
+        if not schema_path.exists():
+            raise FileNotFoundError(f"Schema file not found: {schema_path}")
+
+        suffix = schema_path.suffix.lower()
+        text = schema_path.read_text(encoding="utf-8")
+
+        if suffix == ".json":
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError as e:
+                raise ValueError(f"Invalid JSON in schema file {schema_path}: {e}")
+        elif suffix in (".yaml", ".yml"):
+            try:
+                return yaml.safe_load(text)
+            except yaml.YAMLError as e:
+                raise ValueError(f"Invalid YAML in schema file {schema_path}: {e}")
+        else:
+            raise ValueError(
+                f"Unsupported schema file format '{suffix}'. "
+                f"Supported formats: .json, .yaml, .yml"
+            )
+
+    raise ValueError(
+        f"output_schema must be a dict or a file path string, "
+        f"got {type(output_schema).__name__}"
+    )

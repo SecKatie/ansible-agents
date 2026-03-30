@@ -59,6 +59,7 @@ class ActionModule(ActionBase):
 
         from ansible_collections.seckatie.agents.plugins.module_utils.schema_builder import (
             build_model,
+            resolve_schema,
         )
         from ansible_collections.seckatie.agents.plugins.module_utils.tool_builder import (
             build_tools,
@@ -69,7 +70,6 @@ class ActionModule(ActionBase):
         model_name = args.get("model")
         system_prompt = args.get("system_prompt", "")
         prompt = args.get("prompt")
-        output_schema = args.get("output_schema")
         message_history_raw = args.get("message_history")
         tool_defs = args.get("tools", []) or []
         max_tool_calls = args.get("max_tool_calls", 25)
@@ -81,11 +81,14 @@ class ActionModule(ActionBase):
             return dict(failed=True, msg="'prompt' parameter is required")
 
         # Build output type from schema
+        output_schema = args.get("output_schema")
         output_type = str
         if output_schema:
             try:
-                output_type = build_model(output_schema)
-            except ValueError as e:
+                basedir = self._loader.get_basedir()
+                schema = resolve_schema(output_schema, basedir=basedir)
+                output_type = build_model(schema)
+            except (ValueError, OSError) as e:
                 return dict(failed=True, msg=f"Invalid output_schema: {e}")
 
         # Build tools
