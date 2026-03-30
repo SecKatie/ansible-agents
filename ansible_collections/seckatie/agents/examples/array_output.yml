@@ -1,0 +1,47 @@
+---
+# Array output — wrap array in an object schema
+# Note: Top-level schema must be type: object, so arrays are wrapped in a property
+- name: Array output example
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Classify multiple items
+      seckatie.agents.agent:
+        model: "google-gla:gemini-3-flash-preview"
+        system_prompt: "You are a classification expert. Classify each item precisely."
+        prompt: |
+          Classify these items:
+          - "password123"
+          - "My dog Max"
+          - "192.168.1.1"
+        output_schema:
+          type: object
+          properties:
+            classifications:
+              type: array
+              items:
+                type: object
+                properties:
+                  item:
+                    type: string
+                    description: "The original item"
+                  category:
+                    type: string
+                    enum: [password, personal, network, other]
+                    description: "The category it belongs to"
+                  confidence:
+                    type: number
+                    minimum: 0
+                    maximum: 1
+                    description: "Confidence score"
+                required: [item, category, confidence]
+              description: "Array of classifications"
+          required: [classifications]
+      register: result
+
+    - name: Show classifications
+      ansible.builtin.debug:
+        msg: |
+          {% for c in result.output.classifications %}
+          - {{ c.item }} -> {{ c.category }} ({{ c.confidence }})
+          {% endfor %}

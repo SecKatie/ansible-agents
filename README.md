@@ -96,6 +96,7 @@ The [`examples/`](ansible_collections/seckatie/agents/examples/) directory conta
 
 | Playbook | What it shows |
 |---|---|
+| [`array_output.yml`](ansible_collections/seckatie/agents/examples/array_output.yml) | Return an array by wrapping it in an object schema (top-level `type` must be `object`) |
 | [`simple_prompt.yml`](ansible_collections/seckatie/agents/examples/simple_prompt.yml) | Plain-text LLM response with usage stats |
 | [`structured_output.yml`](ansible_collections/seckatie/agents/examples/structured_output.yml) | JSON Schema output for log analysis |
 | [`tool_calling.yml`](ansible_collections/seckatie/agents/examples/tool_calling.yml) | Agent calls `df -h` and `free -h` modules, returns structured summary |
