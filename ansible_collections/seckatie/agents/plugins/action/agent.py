@@ -3,20 +3,12 @@
 from __future__ import annotations
 
 import json
-import os
-import sys
 from typing import Any
 
 from ansible.plugins.action import ActionBase
 
-_MACOS_FORK_SAFETY_MSG = (
-    "On macOS, Ansible workers crash when importing AI libraries due to an ObjC "
-    "fork safety issue. Set the following environment variable before running "
-    "ansible-playbook:\n\n"
-    "    export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES\n\n"
-    "Add this to your shell profile (~/.zshrc or ~/.bashrc) to make it permanent.\n"
-    "See: https://docs.ansible.com/ansible/latest/reference_appendices/faq.html"
-    "#running-on-macos-as-a-control-node"
+from ansible_collections.seckatie.agents.plugins.module_utils.macos_safety import (
+    check_fork_safety,
 )
 
 
@@ -30,12 +22,9 @@ class ActionModule(ActionBase):
         super().run(tmp, task_vars)
         self._task_vars = task_vars or {}
 
-        # Detect macOS fork safety issue before importing AI libraries
-        if (
-            sys.platform == "darwin"
-            and os.environ.get("OBJC_DISABLE_INITIALIZE_FORK_SAFETY") != "YES"
-        ):
-            return dict(failed=True, msg=_MACOS_FORK_SAFETY_MSG)
+        fork_error = check_fork_safety()
+        if fork_error:
+            return fork_error
 
         # Defer all heavy imports to after fork to avoid segfaults
         try:
@@ -72,6 +61,7 @@ class ActionModule(ActionBase):
         prompt = args.get("prompt")
         message_history_raw = args.get("message_history")
         tool_defs = args.get("tools", []) or []
+        mcp_server_defs = args.get("mcp_servers", []) or []
         max_tool_calls = args.get("max_tool_calls", 25)
         model_settings_raw = args.get("model_settings")
 
@@ -104,6 +94,33 @@ class ActionModule(ActionBase):
             except Exception as e:
                 return dict(failed=True, msg=f"Failed to build tools: {e}")
 
+        # Build MCP toolsets
+        mcp_toolsets = []
+        mcp_tools_filters = []
+        if mcp_server_defs:
+            try:
+                from ansible_collections.seckatie.agents.plugins.module_utils.mcp_config import (
+                    build_mcp_toolset,
+                )
+            except ImportError:
+                return dict(
+                    failed=True,
+                    msg=(
+                        "The mcp package is required to use mcp_servers. "
+                        "Install it on the Ansible controller: "
+                        "pip install 'pydantic-ai-slim[mcp]'"
+                    ),
+                )
+
+            for server_def in mcp_server_defs:
+                try:
+                    result = build_mcp_toolset(server_def)
+                    mcp_toolsets.append(result.toolset)
+                    if result.tools_filter:
+                        mcp_tools_filters.append(result.tools_filter)
+                except (ValueError, ImportError) as e:
+                    return dict(failed=True, msg=f"Failed to configure MCP server: {e}")
+
         # Deserialize message history
         message_history = None
         if message_history_raw:
@@ -132,13 +149,16 @@ class ActionModule(ActionBase):
 
         # Construct and run the agent
         try:
-            agent = Agent(
-                model_name,
+            agent_kwargs: dict[str, Any] = dict(
                 instructions=system_prompt or None,
                 output_type=output_type,
                 tools=pydantic_tools,
                 model_settings=model_settings,
             )
+            if mcp_toolsets:
+                agent_kwargs["toolsets"] = mcp_toolsets
+
+            agent = Agent(model_name, **agent_kwargs)
 
             result = agent.run_sync(
                 prompt,
@@ -174,8 +194,32 @@ class ActionModule(ActionBase):
             "tool_calls": usage.tool_calls,
         }
 
-        # Determine changed status
+        # Determine changed status from Ansible tools
         changed = tracker.changed if tracker else False
+
+        if not changed and mcp_server_defs:
+            from pydantic_ai.messages import ToolCallPart
+
+            # Build lookup: tool_name → changed flag (from filters)
+            mcp_tool_configs: dict[str, bool] = {}
+            for tf in mcp_tools_filters:
+                for tool_name, tool_config in tf.items():
+                    mcp_tool_configs[tool_name] = tool_config.changed
+
+            ansible_tool_names = {td["name"] for td in tool_defs}
+
+            for msg in result.all_messages():
+                for part in getattr(msg, "parts", []):
+                    if isinstance(part, ToolCallPart):
+                        name = part.tool_name
+                        if name in mcp_tool_configs:
+                            if mcp_tool_configs[name]:
+                                changed = True
+                        elif name not in ansible_tool_names:
+                            # Unfiltered MCP tool — default changed=true
+                            changed = True
+                if changed:
+                    break
 
         return dict(
             changed=changed,

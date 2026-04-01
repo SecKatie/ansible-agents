@@ -56,6 +56,19 @@ options:
     elements: dict
     required: false
     default: []
+  mcp_servers:
+    description:
+      - List of MCP server configuration objects to connect to during the agent run.
+      - Each entry defines an MCP server with C(type) (C(stdio), C(sse), or C(streamable_http))
+        and transport-specific connection parameters.
+      - "Common options: C(tool_prefix), C(timeout) (default 5s), C(read_timeout) (default 300s)."
+      - "Optional C(tools) field filters available tools. Accepts strings (tool names) or objects with C(name) and C(changed) fields."
+      - MCP server tools are available alongside Ansible module tools defined in C(tools).
+      - "Requires the mcp package: C(pip install 'pydantic-ai-slim[mcp]')."
+    type: list
+    elements: dict
+    required: false
+    default: []
   max_tool_calls:
     description:
       - Maximum number of tool calls the agent is allowed to make.
@@ -118,6 +131,19 @@ EXAMPLES = r"""
           cmd: "df -h"
   register: result
 
+- name: Agent with MCP server tools
+  seckatie.agents.agent:
+    model: "anthropic:claude-sonnet-4-20250514"
+    system_prompt: "You are a research assistant with web search capabilities."
+    prompt: "Search for recent news about Ansible automation."
+    mcp_servers:
+      - type: stdio
+        command: "uvx"
+        args: ["mcp-server-fetch"]
+        tools:
+          - name: fetch
+            changed: false
+
 - name: Conversation continuity
   seckatie.agents.agent:
     model: "anthropic:claude-sonnet-4-20250514"
@@ -179,6 +205,7 @@ def main():
             output_schema=dict(type="raw", required=False, default=None),
             message_history=dict(type="raw", required=False, default=None),
             tools=dict(type="list", elements="dict", required=False, default=[]),
+            mcp_servers=dict(type="list", elements="dict", required=False, default=[]),
             max_tool_calls=dict(type="int", required=False, default=25),
             model_settings=dict(type="dict", required=False, default=None),
         ),

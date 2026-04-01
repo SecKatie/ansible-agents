@@ -1,0 +1,55 @@
+---
+# Example: MCP prompt retrieval feeding into an agent.
+#
+# This playbook retrieves a prompt template from an MCP server,
+# then feeds it to an agent as a system prompt. This enables
+# centralized prompt management via MCP prompt servers.
+#
+# Prerequisites:
+#   pip install 'pydantic-ai-slim[mcp]'
+#   An MCP server that exposes prompts (replace with your server)
+#
+# Usage:
+#   export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES  # macOS only
+#   ansible-playbook examples/mcp_prompt_pipeline.yml
+
+- name: MCP prompt pipeline
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    prompt_server:
+      type: stdio
+      command: "my-prompt-server"
+      args: []
+
+  tasks:
+    - name: List available prompts
+      seckatie.agents.mcp:
+        server: "{{ prompt_server }}"
+        action: list_prompts
+      register: prompts_result
+
+    - name: Show available prompts
+      ansible.builtin.debug:
+        msg: "{{ prompts_result.output }}"
+
+    - name: Get the code review prompt
+      seckatie.agents.mcp:
+        server: "{{ prompt_server }}"
+        action: get_prompt
+        prompt_name: code_review
+        prompt_arguments:
+          language: python
+      register: prompt_result
+
+    - name: Use the prompt with an agent
+      seckatie.agents.agent:
+        model: "google-gla:gemini-3-flash-preview"
+        system_prompt: "{{ prompt_result.output.messages | map(attribute='content') | join('\n') }}"
+        prompt: "Review this function: def add(a, b): return a + b"
+      register: review_result
+
+    - name: Show review
+      ansible.builtin.debug:
+        msg: "{{ review_result.output }}"

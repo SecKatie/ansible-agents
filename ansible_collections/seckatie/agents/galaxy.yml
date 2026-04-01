@@ -17,4 +17,8 @@ tags:
   - agent
   - pydantic
   - llm
+  - mcp
 dependencies: {}
+# Python dependencies:
+#   Required: pydantic-ai
+#   Optional (for MCP support): pip install 'pydantic-ai-slim[mcp]'

@@ -1,0 +1,49 @@
+---
+# Example: Agent with MCP servers and Ansible module tools combined.
+#
+# This playbook shows an agent using both MCP server tools (web fetch)
+# and Ansible module tools (disk check) in a single run.
+#
+# Prerequisites:
+#   pip install 'pydantic-ai-slim[mcp]'
+#   uvx is available (or replace with your MCP server command)
+#
+# Usage:
+#   export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES  # macOS only
+#   ansible-playbook examples/mcp_agent.yml
+
+- name: Agent with MCP and Ansible tools
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    fetch_server:
+      type: stdio
+      command: "uvx"
+      args: ["mcp-server-fetch"]
+      tools:
+        - name: fetch
+          changed: false
+
+  tasks:
+    - name: Research and check system health
+      seckatie.agents.agent:
+        model: "google-gla:gemini-3-flash-preview"
+        system_prompt: |
+          You are a systems administrator with web research capabilities.
+          Use the fetch tool to look up documentation and the check_disk
+          tool to inspect the local system.
+        prompt: "Fetch https://example.com and also check disk usage on this host. Summarize both."
+        mcp_servers:
+          - "{{ fetch_server }}"
+        tools:
+          - name: check_disk
+            description: "Check disk usage on the host"
+            module: ansible.builtin.command
+            fixed_args:
+              cmd: "df -h"
+      register: result
+
+    - name: Show result
+      ansible.builtin.debug:
+        msg: "{{ result.output }}"

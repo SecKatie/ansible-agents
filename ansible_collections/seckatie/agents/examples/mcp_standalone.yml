@@ -1,0 +1,50 @@
+---
+# Example: Direct MCP server interactions without an LLM agent.
+#
+# This playbook shows how to use the seckatie.agents.mcp module to
+# interact with MCP servers directly from Ansible tasks.
+#
+# Prerequisites:
+#   pip install 'pydantic-ai-slim[mcp]'
+#   uvx is available (or replace with your MCP server command)
+#
+# Usage:
+#   export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES  # macOS only
+#   ansible-playbook examples/mcp_standalone.yml
+
+- name: Direct MCP server interactions
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    fetch_server:
+      type: stdio
+      command: "uvx"
+      args: ["mcp-server-fetch"]
+      tools:
+        - name: fetch
+          changed: false
+
+  tasks:
+    - name: List available tools
+      seckatie.agents.mcp:
+        server: "{{ fetch_server }}"
+        action: list_tools
+      register: tools_result
+
+    - name: Show available tools
+      ansible.builtin.debug:
+        msg: "{{ tools_result.output }}"
+
+    - name: Fetch a web page
+      seckatie.agents.mcp:
+        server: "{{ fetch_server }}"
+        action: call_tool
+        tool_name: fetch
+        arguments:
+          url: "https://example.com"
+      register: fetch_result
+
+    - name: Show fetched content
+      ansible.builtin.debug:
+        msg: "{{ fetch_result.output | truncate(500) }}"

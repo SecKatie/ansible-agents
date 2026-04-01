@@ -11,6 +11,7 @@ Built on [Pydantic AI](https://ai.pydantic.dev/) -- works with OpenAI, Anthropic
 
 - **Structured output** -- define a JSON Schema and get a validated dict back
 - **Tool calling** -- the agent invokes Ansible modules you whitelist, with fixed and agent-controlled arguments
+- **MCP support** -- connect to any [MCP](https://modelcontextprotocol.io/) server for tools, resources, and prompts
 - **Conversation continuity** -- pass `message_history` between tasks to maintain context
 - **Security by design** -- explicit tool whitelist, `fixed_args`/`agent_args` separation, `shlex.quote()` on template interpolation
 
@@ -21,6 +22,9 @@ ansible-galaxy collection install seckatie.agents
 
 # Python dependencies (on the controller)
 pip install pydantic-ai pydantic
+
+# Optional: MCP support
+pip install 'pydantic-ai-slim[mcp]'
 ```
 
 ### macOS
@@ -62,6 +66,7 @@ Add it to `~/.zshrc` or `~/.bashrc`. This is a [known Ansible/macOS issue](https
 | `message_history` | raw | no | -- | Message history from a previous run (for conversation continuity) |
 | `tools` | list | no | `[]` | Tool definitions (see below) |
 | `max_tool_calls` | int | no | `25` | Maximum tool calls the agent may make |
+| `mcp_servers` | list | no | `[]` | MCP server configs (see below) |
 | `model_settings` | dict | no | -- | Provider settings (`temperature`, `max_tokens`, etc.) |
 
 ## Return Values
@@ -90,6 +95,70 @@ Each entry in `tools` is a dict:
 
 `fixed_args` support `{{ placeholder }}` templates that are filled from `agent_args` values and shell-escaped with `shlex.quote()`.
 
+## MCP Support
+
+Connect agents to [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) servers for tools, resources, and prompts. MCP tools work alongside Ansible module tools.
+
+### Server Configuration
+
+Each MCP server config requires a `type` and transport-specific parameters:
+
+```yaml
+# stdio transport (spawns a subprocess)
+- type: stdio
+  command: "uvx"
+  args: ["mcp-server-fetch"]
+
+# SSE transport
+- type: sse
+  url: "http://localhost:8080/sse"
+  headers:
+    Authorization: "Bearer {{ token }}"
+
+# Streamable HTTP transport
+- type: streamable_http
+  url: "http://localhost:8080/mcp"
+```
+
+Common optional fields: `tool_prefix`, `timeout` (default 5s), `read_timeout` (default 300s).
+
+### Tool Filtering and Changed Status
+
+Use the `tools` field to restrict which tools are exposed and control `changed` status:
+
+```yaml
+mcp_servers:
+  - type: stdio
+    command: "my-server"
+    tools:
+      - name: search_web     # changed defaults to true
+      - name: get_repo
+        changed: false        # read-only, won't mark task as changed
+```
+
+Without a `tools` filter, all server tools are available with `changed: true` (conservative default).
+
+### Standalone MCP Module
+
+Use `seckatie.agents.mcp` for direct MCP interactions without an LLM:
+
+```yaml
+- name: List tools from an MCP server
+  seckatie.agents.mcp:
+    server: "{{ my_server }}"
+    action: list_tools
+
+- name: Call a tool directly
+  seckatie.agents.mcp:
+    server: "{{ my_server }}"
+    action: call_tool
+    tool_name: fetch
+    arguments:
+      url: "https://example.com"
+```
+
+Supported actions: `call_tool`, `list_tools`, `read_resource`, `list_resources`, `get_prompt`, `list_prompts`.
+
 ## Examples
 
 The [`examples/`](examples/) directory contains complete playbooks:
@@ -100,6 +169,9 @@ The [`examples/`](examples/) directory contains complete playbooks:
 | [`structured_output.yml`](examples/structured_output.yml) | JSON Schema output for log analysis |
 | [`tool_calling.yml`](examples/tool_calling.yml) | Agent calls `df -h` and `free -h` modules, returns structured summary |
 | [`conversation_continuity.yml`](examples/conversation_continuity.yml) | Two-task conversation passing `message_history` |
+| [`mcp_agent.yml`](examples/mcp_agent.yml) | Agent with MCP server tools and Ansible module tools combined |
+| [`mcp_standalone.yml`](examples/mcp_standalone.yml) | Direct MCP calls (list_tools, call_tool) without an LLM |
+| [`mcp_prompt_pipeline.yml`](examples/mcp_prompt_pipeline.yml) | MCP prompt retrieval feeding into an agent |
 
 ## Security
 
